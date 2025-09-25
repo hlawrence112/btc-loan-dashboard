@@ -4,28 +4,21 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BTC-Backed Loan Dashboard</title>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <style>
     :root{
       --bg:#0b0f14;--panel:#121823;--muted:#1a2332;--text:#e8f0ff;--sub:#9fb3c8;--accent:#4dd0e1;--good:#23d18b;--warn:#ffd166;--bad:#ff5c77;
     }
-    [data-theme="light"]{--bg:#f6f8fc;--panel:#ffffff;--muted:#eef2f9;--text:#0c1525;--sub:#4a5a70;--accent:#0078ff;--good:#15803d;--warn:#b45309;--bad:#be123c}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:var(--text);background:linear-gradient(180deg,var(--bg),#090c12 60%,var(--bg))}
+    *{box-sizing:border-box} body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:var(--text);background:linear-gradient(180deg,#0b0f14,#0a0e13 60%,#090c12)}
     header{position:sticky;top:0;z-index:5;background:rgba(10,14,19,.8);backdrop-filter:blur(8px);border-bottom:1px solid #182030}
-    [data-theme="light"] header{background:#fffccf40;border-bottom:1px solid #e3e8f5}
-    .wrap{max-width:1200px;margin:0 auto;padding:18px}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
     h1{margin:6px 0 2px;font-size:22px}
     .sub{color:var(--sub);font-size:13px}
     .grid{display:grid;gap:14px}
-    @media(min-width:1000px){.grid.cols-3{grid-template-columns:repeat(3,1fr)}.grid.cols-2{grid-template-columns:repeat(2,1fr)}.grid.cols-4{grid-template-columns:repeat(4,1fr)}}
+    @media(min-width:900px){.grid.cols-3{grid-template-columns:repeat(3,1fr)}.grid.cols-2{grid-template-columns:repeat(2,1fr)}}
     .card{background:var(--panel);border:1px solid #1c2535;border-radius:16px;padding:16px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
-    [data-theme="light"] .card{border-color:#e8edf7;box-shadow:0 8px 26px rgba(10,20,40,.08)}
     .card h2{margin:0 0 12px;font-size:16px}
     label{display:block;font-size:12px;color:var(--sub);margin:10px 0 6px}
     input,select,button,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #263147;background:#0e1420;color:var(--text)}
-    [data-theme="light"] input,[data-theme="light"] select,[data-theme="light"] button,[data-theme="light"] textarea{background:#f6f8ff;border-color:#d9e2f3}
     input:focus,select:focus,textarea:focus{outline:2px solid #355184}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .kpi{display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:12px;background:var(--muted);margin-bottom:8px}
@@ -43,27 +36,13 @@
     .news-item a{color:#b8d6ff;text-decoration:none}
     canvas{width:100%;height:280px}
     .tag{padding:2px 8px;border-radius:12px;background:#0f1724;border:1px solid #23314a;color:#9fb3c8;font-size:11px}
-    .right{margin-left:auto}
-    .switch{display:flex;align-items:center;gap:8px}
-    .switch input{width:auto}
-    .divider{height:1px;background:#1e2a3f;margin:10px 0}
-    .list{max-height:280px;overflow:auto}
   </style>
 </head>
 <body>
   <header>
-    <div class="wrap flex">
-      <div>
-        <h1>BTC-Backed Loan Dashboard</h1>
-        <div class="sub">Client-side app (no server). Saved to <b>localStorage</b>.</div>
-      </div>
-      <div class="right switch">
-        <label class="sub">Theme</label>
-        <select id="themeSel">
-          <option value="dark">Dark</option>
-          <option value="light">Light</option>
-        </select>
-      </div>
+    <div class="wrap">
+      <h1>BTC-Backed Loan Dashboard</h1>
+      <div class="sub">Client-side app (no server). Data saved to your browser via <b>localStorage</b>.</div>
     </div>
   </header>
 
@@ -101,16 +80,6 @@
             <input type="number" id="liqLtv" step="0.01" placeholder="86" />
           </div>
         </div>
-        <div class="row">
-          <div>
-            <label>Interest Buffer (USD)</label>
-            <input type="number" id="intBuffer" step="1" placeholder="150" />
-          </div>
-          <div>
-            <label>Stablecoin Buffer (USDC on hand)</label>
-            <input type="number" id="usdcBuffer" step="1" placeholder="0" />
-          </div>
-        </div>
         <div class="flex" style="margin-top:12px">
           <button class="btn" id="saveBtn">Save</button>
           <button class="btn" id="resetBtn">Reset</button>
@@ -132,18 +101,7 @@
         <div class="kpi"><div>Monthly Interest</div><div class="v" id="monthlyInterest">—</div></div>
         <div class="kpi"><div>Runway (months of interest buffer)</div><div class="v" id="runway">—</div></div>
         <div id="healthTag" class="pill" style="margin-top:8px">Health</div>
-        <div class="divider"></div>
-        <div class="grid cols-2">
-          <div>
-            <canvas id="gauge" height="170"></canvas>
-            <div class="small sub" style="text-align:center;margin-top:6px">Loan Health Gauge (LTV)</div>
-          </div>
-          <div>
-            <canvas id="portfolioChart" height="170"></canvas>
-            <div class="small sub" style="text-align:center;margin-top:6px">Portfolio Value vs Loan</div>
-          </div>
-        </div>
-        <div class="flex" style="margin-top:12px">
+        <div class="flex" style="margin-top:10px">
           <button class="btn" id="markInterest">Mark Interest Paid</button>
           <button class="btn" id="addTopUp">Log Collateral Add</button>
           <button class="btn" id="addRepay">Log Principal Repay</button>
@@ -151,71 +109,26 @@
       </section>
 
       <section class="card" id="pricesNews">
-        <h2>Markets: BTC • XRP • ETH • SOL</h2>
-        <div class="grid cols-4">
-          <div class="kpi"><div>BTC</div><div class="v" id="btcTicker">—</div></div>
-          <div class="kpi"><div>XRP</div><div class="v" id="xrpTicker">—</div></div>
-          <div class="kpi"><div>ETH</div><div class="v" id="ethTicker">—</div></div>
-          <div class="kpi"><div>SOL</div><div class="v" id="solTicker">—</div></div>
+        <h2>Markets: BTC & XRP</h2>
+        <div class="grid cols-2">
+          <div class="kpi"><div>BTC Price</div><div class="v" id="btcTicker">—</div></div>
+          <div class="kpi"><div>XRP Price</div><div class="v" id="xrpTicker">—</div></div>
         </div>
-        <div class="grid cols-4">
+        <div class="grid cols-2">
           <div class="kpi"><div>BTC 24h</div><div class="v" id="btcChange">—</div></div>
           <div class="kpi"><div>XRP 24h</div><div class="v" id="xrpChange">—</div></div>
-          <div class="kpi"><div>ETH 24h</div><div class="v" id="ethChange">—</div></div>
-          <div class="kpi"><div>SOL 24h</div><div class="v" id="solChange">—</div></div>
         </div>
-        <div class="grid cols-2" style="margin-top:10px">
-          <div>
-            <canvas id="btcHistory"></canvas>
-            <div class="small sub" style="text-align:center;margin-top:6px">BTC 7d Price</div>
-          </div>
-          <div>
-            <canvas id="xrpHistory"></canvas>
-            <div class="small sub" style="text-align:center;margin-top:6px">XRP 7d Price</div>
-          </div>
-        </div>
-        <div class="grid cols-2" style="margin-top:10px">
-          <div>
-            <canvas id="ethHistory"></canvas>
-            <div class="small sub" style="text-align:center;margin-top:6px">ETH 7d Price</div>
-          </div>
-          <div>
-            <canvas id="solHistory"></canvas>
-            <div class="small sub" style="text-align:center;margin-top:6px">SOL 7d Price</div>
-          </div>
-        </div>
-        <div style="margin-top:8px" class="small">Prices from CoinGecko (client-side). Auto-refresh 60s.</div>
+        <div style="margin-top:8px" class="small">Prices from CoinGecko (client-side). Auto-refreshes every 60s.</div>
         <div style="margin-top:12px" class="flex">
           <span class="tag">News Feeds (client-side fetch)</span>
           <button class="btn" id="refreshNews">Refresh News</button>
         </div>
-        <div id="newsList" class="list" style="margin-top:8px"></div>
+        <div id="newsList" style="max-height:260px;overflow:auto;margin-top:8px"></div>
       </section>
     </div>
 
     <section class="card" style="margin-top:14px">
-      <h2>DCA & Cost Basis</h2>
-      <div class="row">
-        <div>
-          <label>Buy Amount (USD)</label>
-          <input type="number" id="dcaUsd" step="0.01" placeholder="1000" />
-        </div>
-        <div>
-          <label>BTC Received</label>
-          <input type="number" id="dcaBtc" step="0.00000001" placeholder="0.00848273" />
-        </div>
-      </div>
-      <div class="flex" style="margin-top:8px">
-        <button class="btn" id="addDca">Add DCA Entry</button>
-        <button class="btn" id="exportCsv">Export DCA CSV</button>
-      </div>
-      <div class="divider"></div>
-      <div id="dcaSummary" class="small sub"></div>
-      <div id="dcaList" class="list"></div>
-    </section>
-
-    <section class="card" style="margin-top:14px">
-      <h2>Scenario Simulator & Halving</h2>
+      <h2>Scenario Simulator</h2>
       <div class="row">
         <div>
           <label>Simulated BTC Price (USD)</label>
@@ -231,11 +144,6 @@
         <div class="kpi"><div>Portfolio Value</div><div class="v" id="simValue">—</div></div>
         <div class="kpi"><div>Net (after loan)</div><div class="v" id="simNet">—</div></div>
       </div>
-      <div class="divider"></div>
-      <div class="grid cols-2">
-        <div class="kpi"><div>Next Bitcoin Halving ETA</div><div class="v" id="halving">—</div></div>
-        <div class="kpi"><div>Fear & Greed (manual)</div><div class="v" id="fgIndex">Set via settings</div></div>
-      </div>
     </section>
 
     <section class="card" style="margin-top:14px">
@@ -243,7 +151,7 @@
       <div id="log"></div>
     </section>
 
-    <div class="footer small">Client-side only. Always verify liquidation rules with your lender. Not financial advice.</div>
+    <div class="footer small">Made for client-side use. Always double-check liquidation rules with your lender. Not financial advice.</div>
   </main>
 
   <script>
@@ -252,139 +160,170 @@
     const fmtBTC=v=> isNaN(v)?'—': (Number(v).toFixed(8)+' BTC');
     const pct=v=> isNaN(v)?'—': (v.toFixed(2)+'%');
 
-    // THEME
-    const savedTheme = localStorage.getItem('bbl_theme')||'dark';
-    document.documentElement.setAttribute('data-theme', savedTheme==='light'?'light':'dark');
-    $('#themeSel').value = savedTheme;
-    $('#themeSel').onchange = (e)=>{ const t=e.target.value; localStorage.setItem('bbl_theme',t); document.documentElement.setAttribute('data-theme', t==='light'?'light':'dark'); };
-
-    // STATE
     const state = JSON.parse(localStorage.getItem('bbl_state')||'{}');
+
+    // Defaults based on your latest screenshots
     const defaults={
-      loanAmount:1000, apr:7.35, collateralBtc:0.02952035, purchasedBtc:0.00848273,
-      targetLtv:30, liqLtv:86, interestBufferUSD:150, usdcBuffer:0,
-      dca:[], log:[]
+      loanAmount:1000,
+      apr:7.35,
+      collateralBtc:0.02952035,
+      purchasedBtc:0.00848273,
+      targetLtv:30,
+      liqLtv:86,
+      interestBufferUSD: 150 // how much cash set aside for interest runway (editable by editing localStorage)
     };
+
     Object.assign(defaults,state);
 
     // Populate inputs
-    $('#loanAmount').value=defaults.loanAmount; $('#apr').value=defaults.apr; $('#collateralBtc').value=defaults.collateralBtc; $('#purchasedBtc').value=defaults.purchasedBtc; $('#targetLtv').value=defaults.targetLtv; $('#liqLtv').value=defaults.liqLtv; $('#intBuffer').value=defaults.interestBufferUSD; $('#usdcBuffer').value=defaults.usdcBuffer;
+    $('#loanAmount').value=defaults.loanAmount;
+    $('#apr').value=defaults.apr;
+    $('#collateralBtc').value=defaults.collateralBtc;
+    $('#purchasedBtc').value=defaults.purchasedBtc;
+    $('#targetLtv').value=defaults.targetLtv;
+    $('#liqLtv').value=defaults.liqLtv;
 
-    function persist(){ localStorage.setItem('bbl_state',JSON.stringify(defaults)); }
-    function save(){ Object.assign(defaults,{
-        loanAmount:Number($('#loanAmount').value), apr:Number($('#apr').value), collateralBtc:Number($('#collateralBtc').value), purchasedBtc:Number($('#purchasedBtc').value), targetLtv:Number($('#targetLtv').value), liqLtv:Number($('#liqLtv').value), interestBufferUSD:Number($('#intBuffer').value), usdcBuffer:Number($('#usdcBuffer').value)
-      }); persist(); render(); }
+    function save(){
+      const s={
+        loanAmount: Number($('#loanAmount').value),
+        apr: Number($('#apr').value),
+        collateralBtc: Number($('#collateralBtc').value),
+        purchasedBtc: Number($('#purchasedBtc').value),
+        targetLtv: Number($('#targetLtv').value),
+        liqLtv: Number($('#liqLtv').value),
+        interestBufferUSD: defaults.interestBufferUSD,
+        log: defaults.log || []
+      };
+      localStorage.setItem('bbl_state',JSON.stringify(s));
+      Object.assign(defaults,s);
+      render();
+    }
+
     function reset(){ localStorage.removeItem('bbl_state'); location.reload(); }
+
     $('#saveBtn').onclick=save; $('#resetBtn').onclick=reset;
 
-    // LOG
-    function addLog(type, data){ defaults.log.unshift({t:new Date().toISOString(),type,data}); persist(); renderLog(); }
-    $('#markInterest').onclick=()=>{ const m=defaults.loanAmount*(defaults.apr/100)/12; addLog('interest_paid',{amount:m}); };
-    $('#addTopUp').onclick=()=>{ const amt=prompt('Add how much BTC to collateral? e.g. 0.002'); if(!amt) return; defaults.collateralBtc+=Number(amt); addLog('collateral_add',{btc:Number(amt)}); save(); };
-    $('#addRepay').onclick=()=>{ const usd=prompt('Repay principal amount (USD)?'); if(!usd) return; defaults.loanAmount=Math.max(0,defaults.loanAmount-Number(usd)); addLog('principal_repay',{usd:Number(usd)}); save(); };
+    // Activity log helpers
+    function addLog(type, data){
+      defaults.log = defaults.log || [];
+      defaults.log.unshift({t:new Date().toISOString(),type,data});
+      localStorage.setItem('bbl_state',JSON.stringify(defaults));
+      renderLog();
+    }
+
+    $('#markInterest').onclick=()=>{
+      const monthlyInt = defaults.loanAmount * (defaults.apr/100) / 12;
+      addLog('interest_paid',{amount: monthlyInt});
+    };
+    $('#addTopUp').onclick=()=>{
+      const amt = prompt('Add how much BTC to collateral? e.g. 0.002');
+      if(!amt) return; 
+      defaults.collateralBtc += Number(amt);
+      addLog('collateral_add',{btc:Number(amt)});
+      save();
+    };
+    $('#addRepay').onclick=()=>{
+      const usd = prompt('Repay principal amount (USD)?');
+      if(!usd) return;
+      defaults.loanAmount -= Number(usd);
+      if(defaults.loanAmount<0) defaults.loanAmount=0;
+      addLog('principal_repay',{usd:Number(usd)});
+      save();
+    };
 
     function renderLog(){
       const el=$('#log');
-      const list=(defaults.log||[]).map(x=>{ const d=new Date(x.t).toLocaleString();
+      const list=(defaults.log||[]).map(x=>{
+        const d=new Date(x.t).toLocaleString();
         if(x.type==='interest_paid') return `<div class='news-item'><b>Interest paid</b> ${fmtUSD(x.data.amount)} <span class='sub'>(${d})</span></div>`;
         if(x.type==='collateral_add') return `<div class='news-item'><b>Collateral added</b> ${fmtBTC(x.data.btc)} <span class='sub'>(${d})</span></div>`;
         if(x.type==='principal_repay') return `<div class='news-item'><b>Principal repaid</b> ${fmtUSD(x.data.usd)} <span class='sub'>(${d})</span></div>`;
-        if(x.type==='dca') return `<div class='news-item'><b>DCA Buy</b> ${fmtBTC(x.data.btc)} for ${fmtUSD(x.data.usd)} <span class='sub'>(${d})</span></div>`;
-        return `<div class='news-item'>${x.type} ${JSON.stringify(x.data)} <span class='sub'>(${d})</span></div>`; }).join('');
+        return `<div class='news-item'>${x.type} ${JSON.stringify(x.data)} <span class='sub'>(${d})</span></div>`;
+      }).join('');
       el.innerHTML=list||'<div class="sub">No activity yet.</div>';
     }
 
     // Export / Import
-    $('#exportBtn').onclick=()=>{ const blob=new Blob([JSON.stringify(defaults,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='bbl_state.json'; a.click(); };
-    $('#importFile').onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const s=JSON.parse(r.result); localStorage.setItem('bbl_state',JSON.stringify(s)); Object.assign(defaults,s); render(); }catch{ alert('Invalid JSON'); } }; r.readAsText(f); };
+    $('#exportBtn').onclick=()=>{
+      const blob=new Blob([JSON.stringify(defaults,null,2)],{type:'application/json'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bbl_state.json';a.click();
+    };
+    $('#importFile').onchange=(e)=>{
+      const file=e.target.files[0]; if(!file) return;
+      const r=new FileReader();
+      r.onload=()=>{ try{ const s=JSON.parse(r.result); localStorage.setItem('bbl_state',JSON.stringify(s)); Object.assign(defaults,s); render(); }catch(err){ alert('Invalid JSON'); } };
+      r.readAsText(file);
+    };
 
-    // PRICES (CoinGecko)
+    // Price + News
     async function fetchPrices(){
       try{
-        const url='https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ripple,ethereum,solana&vs_currencies=usd&include_24hr_change=true';
+        const url='https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ripple&vs_currencies=usd&include_24hr_change=true';
         const res=await fetch(url); const j=await res.json();
-        const set=(id,val,chg)=>{ $(id).textContent = fmtUSD(val); $(id.replace('Ticker','Change')).textContent = (chg>=0?'+':'')+chg.toFixed(2)+'%'; };
-        set('#btcTicker', j.bitcoin.usd, j.bitcoin.usd_24h_change);
-        set('#xrpTicker', j.ripple.usd, j.ripple.usd_24h_change);
-        set('#ethTicker', j.ethereum.usd, j.ethereum.usd_24h_change);
-        set('#solTicker', j.solana.usd, j.solana.usd_24h_change);
-        window.currentBtcPrice=j.bitcoin.usd; render();
+        const btc=j.bitcoin.usd; const btcCh=j.bitcoin.usd_24h_change;
+        const xrp=j.ripple.usd; const xrpCh=j.ripple.usd_24h_change;
+        $('#btcTicker').textContent=fmtUSD(btc);
+        $('#xrpTicker').textContent=fmtUSD(xrp);
+        $('#btcChange').textContent=(btcCh>=0?'+':'')+btcCh.toFixed(2)+'%';
+        $('#xrpChange').textContent=(xrpCh>=0?'+':'')+xrpCh.toFixed(2)+'%';
+        window.currentBtcPrice=btc; // store for calculations
+        render();
       }catch(e){ console.warn('Price fetch failed',e); }
     }
 
-    // SPARKLINES (7d)
-    async function fetchHistory(id,canvas){
-      try{
-        const url=`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=7`;
-        const j=await (await fetch(url)).json();
-        const labels=j.prices.map(p=> new Date(p[0]).toLocaleDateString());
-        const data=j.prices.map(p=> p[1]);
-        new Chart($(canvas),{type:'line',data:{labels,datasets:[{label:id.toUpperCase(),data,pointRadius:0,borderWidth:2,tension:.25}]},options:{plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:true}}});
-      }catch(e){ console.warn('History fetch failed',e); }
-    }
-
-    // NEWS
+    // Simple RSS fetchers (best-effort; some feeds may block CORS)
     async function fetchNews(){
       const feeds=[
         {name:'CoinDesk', url:'https://www.coindesk.com/arc/outboundfeeds/rss/?outputType=xml'},
-        {name:'BTC Times', url:'https://btctimes.com/rss'},
-        {name:'The Block', url:'https://www.theblock.co/rss'}
+        {name:'BTC Times', url:'https://btctimes.com/rss'}
       ];
       const listEl=$('#newsList'); listEl.innerHTML='<div class="sub">Loading…</div>';
       try{
+        // Use allorigins proxy for CORS-friendly RSS-to-text
         const items=[];
         for(const f of feeds){
           const res=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(f.url));
-          const txt=await res.text(); const doc=new DOMParser().parseFromString(txt,'text/xml');
-          const arr=[...doc.querySelectorAll('item')].slice(0,5).map(n=>({title:n.querySelector('title')?.textContent||'Untitled',link:n.querySelector('link')?.textContent||'#',src:f.name,date:n.querySelector('pubDate')?.textContent||''}));
+          const txt=await res.text();
+          const doc=new DOMParser().parseFromString(txt,'text/xml');
+          const arr=[...doc.querySelectorAll('item')].slice(0,5).map(n=>({
+            title:n.querySelector('title')?.textContent||'Untitled',
+            link:n.querySelector('link')?.textContent||'#',
+            src:f.name,
+            date:n.querySelector('pubDate')?.textContent||''
+          }));
           items.push(...arr);
         }
         items.sort((a,b)=> new Date(b.date)-new Date(a.date));
-        listEl.innerHTML = items.slice(0,12).map(i=>`<div class='news-item'><a href='${i.link}' target='_blank' rel='noopener'>${i.title}</a><div class='small sub'>${i.src} • ${new Date(i.date).toLocaleString()}</div></div>`).join('');
-      }catch(e){ listEl.innerHTML = `<div class='sub'>News feeds blocked by CORS. Quick links: <a href='https://www.coindesk.com/' target='_blank'>CoinDesk</a> • <a href='https://btctimes.com/' target='_blank'>BTC Times</a> • <a href='https://www.theblock.co/' target='_blank'>The Block</a></div>`; }
+        listEl.innerHTML = items.slice(0,10).map(i=>`
+          <div class='news-item'>
+            <a href='${i.link}' target='_blank' rel='noopener'>${i.title}</a>
+            <div class='small sub'>${i.src} • ${new Date(i.date).toLocaleString()}</div>
+          </div>`).join('');
+      }catch(e){
+        listEl.innerHTML = `<div class='sub'>News feeds blocked by CORS. Quick links: 
+          <a href='https://www.coindesk.com/' target='_blank'>CoinDesk</a> •
+          <a href='https://btctimes.com/' target='_blank'>BTC Times</a></div>`;
+      }
     }
 
     $('#refreshNews').onclick=fetchNews;
 
     function compute(btcPrice){
-      const loan=defaults.loanAmount; const collBTC=defaults.collateralBtc; const collUSD=collBTC * btcPrice; const ltv = loan / Math.max(collUSD,1) * 100; const liqPrice = (loan / (collBTC * (defaults.liqLtv/100)) ) || 0; const monthlyInt = loan * (defaults.apr/100) / 12; const bufferMonths = defaults.interestBufferUSD / Math.max(monthlyInt,1e-6); const totalBtc = collBTC + defaults.purchasedBtc; const portfolioValue = totalBtc * btcPrice; const net = portfolioValue - loan; return {loan, collUSD, ltv, liqPrice, monthlyInt, bufferMonths, totalBtc, portfolioValue, net}; }
-
-    // Charts: Gauge + Portfolio
-    let gaugeChart=null, portfolioLine=null;
-    function renderCharts(r){
-      // Gauge (LTV)
-      const ctx1=$('#gauge').getContext('2d');
-      const l=r.ltv; const segs=[35,20,45]; // green <35, yellow 35-55, red 55-100
-      const colors=['#23d18b','#ffd166','#ff5c77'];
-      if(gaugeChart) gaugeChart.destroy();
-      gaugeChart=new Chart(ctx1,{type:'doughnut',data:{labels:['Low','Watch','High'],datasets:[{data:segs, backgroundColor:colors, borderWidth:0, cutout:'70%'}]},options:{plugins:{legend:{display:false},tooltip:{enabled:false}},rotation:-90, circumference:180}});
-      // needle
-      const needle=document.createElement('div');
-      // Portfolio line (simple history of last N renders)
-      const ctx2=$('#portfolioChart');
-      if(!window._hist){ window._hist=[]; }
-      window._hist.push({t:new Date(), v:r.portfolioValue}); if(window._hist.length>50) window._hist.shift();
-      const labels=window._hist.map(x=> x.t.toLocaleTimeString()); const data=window._hist.map(x=> x.v);
-      if(portfolioLine) portfolioLine.destroy();
-      portfolioLine=new Chart(ctx2,{type:'line',data:{labels,datasets:[{label:'Portfolio',data,pointRadius:0,borderWidth:2,tension:.25}]},options:{plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:true}}});
+      const loan=defaults.loanAmount;
+      const collBTC=defaults.collateralBtc;
+      const collUSD=collBTC * btcPrice;
+      const ltv = loan / Math.max(collUSD,1) * 100;
+      const liqPrice = (loan / (collBTC * (defaults.liqLtv/100)) ) || 0; // USD per BTC
+      const monthlyInt = loan * (defaults.apr/100) / 12;
+      const bufferMonths = defaults.interestBufferUSD / Math.max(monthlyInt,1e-6);
+      const totalBtc = collBTC + defaults.purchasedBtc;
+      const portfolioValue = totalBtc * btcPrice;
+      const net = portfolioValue - loan;
+      return {loan, collUSD, ltv, liqPrice, monthlyInt, bufferMonths, totalBtc, portfolioValue, net};
     }
-
-    function renderDca(){
-      const el=$('#dcaList');
-      if(!defaults.dca.length){ el.innerHTML='<div class="sub">No DCA entries yet.</div>'; $('#dcaSummary').textContent=''; return; }
-      const rows=defaults.dca.map((d,i)=>`<div class='news-item'>#${defaults.dca.length-i} • ${fmtBTC(d.btc)} for ${fmtUSD(d.usd)} <span class='sub'>(${new Date(d.t).toLocaleString()})</span></div>`).join('');
-      const totUsd=defaults.dca.reduce((a,x)=>a+x.usd,0); const totBtc=defaults.dca.reduce((a,x)=>a+x.btc,0);
-      const avg = totUsd / Math.max(totBtc,1e-12);
-      $('#dcaSummary').textContent=`Total ${fmtBTC(totBtc)} • Spent ${fmtUSD(totUsd)} • Avg Cost ${fmtUSD(avg)} per BTC`;
-      el.innerHTML=rows;
-    }
-
-    $('#addDca').onclick=()=>{ const usd=Number($('#dcaUsd').value||0); const btc=Number($('#dcaBtc').value||0); if(!usd||!btc) return alert('Enter USD and BTC.'); defaults.dca.unshift({usd,btc,t:new Date().toISOString()}); defaults.purchasedBtc+=btc; addLog('dca',{usd,btc}); save(); renderDca(); };
-    $('#exportCsv').onclick=()=>{ const rows=[['date','usd','btc']].concat(defaults.dca.map(d=>[d.t,d.usd,d.btc])); const csv=rows.map(r=>r.join(',')).join('
-'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='dca.csv'; a.click(); };
 
     function render(){
-      const price = window.currentBtcPrice || 113000;
+      const price = window.currentBtcPrice || Number($('#btcPrice').dataset.fallback)|| 113000; // fallback
       const r = compute(price);
       $('#btcPrice').textContent = fmtUSD(price);
       $('#collateralUsd').textContent = fmtUSD(r.collUSD);
@@ -392,20 +331,27 @@
       $('#liqPrice').textContent = fmtUSD(r.liqPrice);
       $('#monthlyInterest').textContent = fmtUSD(r.monthlyInt);
       $('#runway').textContent = r.bufferMonths.toFixed(1)+' mo';
-      const tag=$('#healthTag'); tag.className='pill'; if(r.ltv<35){ tag.classList.add('good'); tag.textContent='Health: Green (low risk)'; } else if(r.ltv<55){ tag.classList.add('warn'); tag.textContent='Health: Yellow (watch)'; } else { tag.classList.add('bad'); tag.textContent='Health: Red (act)'; }
-      renderLog(); renderCharts(r); renderDca();
+
+      const tag=$('#healthTag');
+      tag.className='pill';
+      if(r.ltv<35){ tag.classList.add('good'); tag.textContent='Health: Green (low risk)'; }
+      else if(r.ltv<55){ tag.classList.add('warn'); tag.textContent='Health: Yellow (watch)'; }
+      else { tag.classList.add('bad'); tag.textContent='Health: Red (act)'; }
+
+      renderLog();
     }
 
-    // Simulator
-    $('#runSim').onclick=()=>{ const p=Number($('#simPrice').value||0); if(!p) return; const r=compute(p); $('#simLtv').textContent=pct(r.ltv); $('#simValue').textContent=fmtUSD(r.portfolioValue); $('#simNet').textContent=fmtUSD(r.net); };
-
-    // Halving (rough ETA for 2028 halving ~ April 2028, adjust as desired)
-    function renderHalving(){ const target=new Date('2028-04-20T00:00:00Z'); const now=new Date(); const diff=target-now; const days=Math.max(0,Math.floor(diff/86400000)); $('#halving').textContent = days+' days'; }
+    $('#runSim').onclick=()=>{
+      const p=Number($('#simPrice').value||0); if(!p) return;
+      const r=compute(p);
+      $('#simLtv').textContent=pct(r.ltv);
+      $('#simValue').textContent=fmtUSD(r.portfolioValue);
+      $('#simNet').textContent=fmtUSD(r.net);
+    };
 
     // Kickoff
-    fetchPrices(); fetchHistory('bitcoin','#btcHistory'); fetchHistory('ripple','#xrpHistory'); fetchHistory('ethereum','#ethHistory'); fetchHistory('solana','#solHistory'); fetchNews(); render(); renderHalving();
+    fetchPrices(); fetchNews(); render();
     setInterval(fetchPrices,60000);
-    setInterval(renderHalving,3600000);
   </script>
 </body>
 </html>
