@@ -152,6 +152,18 @@
           </div>
         </div>
         <div class="divider"></div>
+        <div class="row">
+          <div>
+            <label>Manual BTC Price (override)</label>
+            <input type="number" id="manualPrice" step="1" placeholder="113000" />
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <button class="btn" id="setManual">Use Manual Price</button>
+          </div>
+        </div>
+        <div class="small sub" id="dataNote"></div>
+        <div class="divider"></div>
         <div class="grid cols-2">
           <div class="kpi"><div>Effective APR on Net Proceeds</div><div class="v" id="effApr">—</div></div>
           <div class="kpi"><div>Net Proceeds</div><div class="v" id="npShow">—</div></div>
@@ -282,19 +294,23 @@
       loanAmount:1000, apr:7.35, collateralBtc:0.02952035, purchasedBtc:0.00848273,
       targetLtv:30, liqLtv:86, interestBufferUSD:150, usdcBuffer:0,
       netProceeds:948.83, upfrontFees:51.17,
-      dca:[], log:[]
+      dca:[], log:[],
+      manualPrice: state?.manualPrice || null
     };
     Object.assign(defaults,state);
 
     // Populate inputs
-    $('#loanAmount').value=defaults.loanAmount; $('#apr').value=defaults.apr; $('#collateralBtc').value=defaults.collateralBtc; $('#purchasedBtc').value=defaults.purchasedBtc; $('#targetLtv').value=defaults.targetLtv; $('#liqLtv').value=defaults.liqLtv; $('#intBuffer').value=defaults.interestBufferUSD; $('#usdcBuffer').value=defaults.usdcBuffer; $('#netProceeds').value=defaults.netProceeds; $('#upfrontFees').value=defaults.upfrontFees;
+    $('#loanAmount').value=defaults.loanAmount; $('#apr').value=defaults.apr; $('#collateralBtc').value=defaults.collateralBtc; $('#purchasedBtc').value=defaults.purchasedBtc; $('#targetLtv').value=defaults.targetLtv; $('#liqLtv').value=defaults.liqLtv; $('#intBuffer').value=defaults.interestBufferUSD; $('#usdcBuffer').value=defaults.usdcBuffer; $('#netProceeds').value=defaults.netProceeds; $('#upfrontFees').value=defaults.upfrontFees; $('#manualPrice').value = defaults.manualPrice || '';
 
     function persist(){ localStorage.setItem('bbl_state',JSON.stringify(defaults)); }
     function save(){ Object.assign(defaults,{
-        loanAmount:Number($('#loanAmount').value), apr:Number($('#apr').value), collateralBtc:Number($('#collateralBtc').value), purchasedBtc:Number($('#purchasedBtc').value), targetLtv:Number($('#targetLtv').value), liqLtv:Number($('#liqLtv').value), interestBufferUSD:Number($('#intBuffer').value), usdcBuffer:Number($('#usdcBuffer').value), netProceeds:Number($('#netProceeds').value), upfrontFees:Number($('#upfrontFees').value)
+        loanAmount:Number($('#loanAmount').value), apr:Number($('#apr').value), collateralBtc:Number($('#collateralBtc').value), purchasedBtc:Number($('#purchasedBtc').value), targetLtv:Number($('#targetLtv').value), liqLtv:Number($('#liqLtv').value), interestBufferUSD:Number($('#intBuffer').value), usdcBuffer:Number($('#usdcBuffer').value), netProceeds:Number($('#netProceeds').value), upfrontFees:Number($('#upfrontFees').value), manualPrice: $('#manualPrice').value? Number($('#manualPrice').value): null
       }); persist(); render(); }
     function reset(){ localStorage.removeItem('bbl_state'); location.reload(); }
     $('#saveBtn').onclick=save; $('#resetBtn').onclick=reset;
+
+    // Manual price handler
+    $('#setManual').onclick=()=>{ const p=Number($('#manualPrice').value||0); if(!p) return alert('Enter a price first'); defaults.manualPrice=p; persist(); window.currentBtcPrice=p; $('#dataNote').textContent='Using manual price override.'; render(); };
 
     // LOG
     function addLog(type, data){ defaults.log.unshift({t:new Date().toISOString(),type,data}); persist(); renderLog(); }
@@ -317,29 +333,39 @@
     $('#exportBtn').onclick=()=>{ const blob=new Blob([JSON.stringify(defaults,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='bbl_state.json'; a.click(); };
     $('#importFile').onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const s=JSON.parse(r.result); localStorage.setItem('bbl_state',JSON.stringify(s)); Object.assign(defaults,s); render(); }catch{ alert('Invalid JSON'); } }; r.readAsText(f); };
 
+    // Helper: try fetch, then proxy fallback if CORS blocks
+    async function fetchWithFallback(url){
+      try{ const r=await fetch(url); if(!r.ok) throw new Error('bad '+r.status); return await r.json(); }
+      catch(e){
+        try{ const prox='https://api.allorigins.win/raw?url='+encodeURIComponent(url); const t=await fetch(prox); if(!t.ok) throw new Error('proxy '+t.status); return await t.json(); }
+        catch(err){ $('#dataNote').textContent='Live data blocked (CORS/network). Using manual or fallback values.'; throw err; }
+      }
+    }
+
     // PRICES (CoinGecko)
     async function fetchPrices(){
       try{
         const url='https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ripple,ethereum,solana&vs_currencies=usd&include_24hr_change=true';
-        const res=await fetch(url); const j=await res.json();
+        const j=await fetchWithFallback(url);
         const set=(id,val,chg)=>{ $(id).textContent = fmtUSD(val); $(id.replace('Ticker','Change')).textContent = (chg>=0?'+':'')+chg.toFixed(2)+'%'; };
         set('#btcTicker', j.bitcoin.usd, j.bitcoin.usd_24h_change);
         set('#xrpTicker', j.ripple.usd, j.ripple.usd_24h_change);
         set('#ethTicker', j.ethereum.usd, j.ethereum.usd_24h_change);
         set('#solTicker', j.solana.usd, j.solana.usd_24h_change);
-        window.currentBtcPrice=j.bitcoin.usd; render();
-      }catch(e){ console.warn('Price fetch failed',e); }
+        if(!defaults.manualPrice){ window.currentBtcPrice=j.bitcoin.usd; }
+        render();
+      }catch(e){ if(!defaults.manualPrice){ $('#dataNote').textContent='Price feed unavailable. Enter a Manual BTC Price above and click Use Manual Price.'; } }
     }
 
     // SPARKLINES (7d)
     async function fetchHistory(id,canvas){
       try{
         const url=`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=7`;
-        const j=await (await fetch(url)).json();
+        const j=await fetchWithFallback(url);
         const labels=j.prices.map(p=> new Date(p[0]).toLocaleDateString());
         const data=j.prices.map(p=> p[1]);
         new Chart($(canvas),{type:'line',data:{labels,datasets:[{label:id.toUpperCase(),data,pointRadius:0,borderWidth:2,tension:.25}]},options:{plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:true}}});
-      }catch(e){ console.warn('History fetch failed',e); }
+      }catch(e){ /* ignore */ }
     }
 
     // NEWS
@@ -371,12 +397,10 @@
     // Charts: Gauge + Portfolio
     let gaugeChart=null, portfolioLine=null;
     function renderCharts(r){
-      // Gauge (LTV)
       const ctx1=$('#gauge').getContext('2d');
       const segs=[35,20,45]; const colors=['#23d18b','#ffd166','#ff5c77'];
       if(gaugeChart) gaugeChart.destroy();
       gaugeChart=new Chart(ctx1,{type:'doughnut',data:{labels:['Low','Watch','High'],datasets:[{data:segs, backgroundColor:colors, borderWidth:0, cutout:'70%'}]},options:{plugins:{legend:{display:false},tooltip:{enabled:false}},rotation:-90, circumference:180}});
-      // Portfolio line (simple history)
       const ctx2=$('#portfolioChart');
       if(!window._hist){ window._hist=[]; }
       window._hist.push({t:new Date(), v:r.portfolioValue}); if(window._hist.length>50) window._hist.shift();
@@ -400,7 +424,7 @@
 '); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='dca.csv'; a.click(); };
 
     function render(){
-      const price = window.currentBtcPrice || 113000;
+      const price = defaults.manualPrice || window.currentBtcPrice || 113000;
       const r = compute(price);
       $('#btcPrice').textContent = fmtUSD(price);
       $('#collateralUsd').textContent = fmtUSD(r.collUSD);
